@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yk-can-sdk"
+version = "0.1.0"
+description = "Windows-friendly SDK for a four-wheel vehicle using USR-CAN115 and two Nanjing Yunkang motor drivers"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "YK_CANSDK contributors" }]
+dependencies = []
+
+[project.scripts]
+yk-can = "yk_can_sdk.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["yk_can_sdk*"]

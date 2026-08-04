@@ -1,0 +1,25 @@
+{
+  "network": {
+    "host": "192.168.0.7",
+    "port": 5578,
+    "connect_timeout_s": 5.0,
+    "receive_timeout_s": 0.2
+  },
+  "safety": {
+    "max_command": 300,
+    "command_period_s": 0.02,
+    "command_watchdog_s": 0.25,
+    "max_acceleration_per_s": 600.0,
+    "max_deceleration_per_s": 1200.0,
+    "max_continuous_motion_s": 10.0,
+    "unlock_repetitions": 10,
+    "stop_repetitions": 10,
+    "auto_estop_on_fault": true
+  },
+  "front_driver_id": 1,
+  "rear_driver_id": 2,
+  "front_motor1_sign": 1,
+  "front_motor2_sign": -1,
+  "rear_motor1_sign": 1,
+  "rear_motor2_sign": -1
+}
