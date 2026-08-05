@@ -91,8 +91,7 @@ mkdir -p sensor_bringup/sensor_bringup
 # 周光玮
 ros2 pkg create --build-type ament_python visualization
 mkdir -p visualization/frontend
-# 然后在 visualization/frontend 内 npm create vue@latest
-```
+
 
 > 创建后在包目录下确保有 `__init__.py`（Python 包）和 `launch/` 目录。
 
