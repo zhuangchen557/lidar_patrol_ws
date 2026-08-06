@@ -35,7 +35,7 @@ const entries = []
 for (const file of staticFiles) {
   const route = `/${relative(distRoot, file).replaceAll('\\', '/')}`
   const bytes = await readFile(file)
-  entries.push([route, bytes.toString('base64'), mimeTypes[extname(file)] || 'application/octet-stream'])
+  entries.push([route, [bytes.toString('base64'), mimeTypes[extname(file)] || 'application/octet-stream']])
 }
 
 const workerSource = `
@@ -54,12 +54,12 @@ export default {
     const file = files.get(path);
     if (!file) return new Response('Not Found', { status: 404 });
     const headers = {
-      'content-type': file[2],
+      'content-type': file[1],
       'cache-control': path === '/index.html' ? 'no-cache' : 'public, max-age=31536000, immutable',
       'x-content-type-options': 'nosniff',
       'referrer-policy': 'same-origin',
     };
-    return new Response(request.method === 'HEAD' ? null : decode(file[1]), { status: 200, headers });
+    return new Response(request.method === 'HEAD' ? null : decode(file[0]), { status: 200, headers });
   },
 };
 `
