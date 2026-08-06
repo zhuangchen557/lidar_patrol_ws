@@ -91,7 +91,8 @@ mkdir -p sensor_bringup/sensor_bringup
 # 周光玮
 ros2 pkg create --build-type ament_python visualization
 mkdir -p visualization/frontend
-
+# 然后在 visualization/frontend 内 npm create vue@latest
+```
 
 > 创建后在包目录下确保有 `__init__.py`（Python 包）和 `launch/` 目录。
 
@@ -136,8 +137,9 @@ git push
 1. 浏览器打开 `https://github.com/zhuangchen557/lidar_patrol_ws`
 2. 点 `Pull requests` → `New pull request`
 3. base 选 **`dev`**，compare 选你的 **`feature/<分支名>`**
-4. 标题格式：`[模块名] `
-5. 点 `Create pull request`，然后群里 @组长
+4. 标题格式：`[模块名] 做了什么`
+5. 正文写明：改了什么、怎么测试、是否依赖其他人
+6. 点 `Create pull request`，然后群里 @组长
 
 ---
 
