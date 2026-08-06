@@ -2,7 +2,6 @@ import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { extname, relative, resolve } from 'node:path'
 import { build } from 'vite'
 
-process.env.VITE_PUBLIC_DEMO = 'true'
 await build()
 
 const projectRoot = resolve(new URL('..', import.meta.url).pathname.replace(/^\/(?:[A-Za-z]:)/, (match) => match.slice(1)))
@@ -50,13 +49,15 @@ function decode(base64) {
 export default {
   async fetch(request) {
     const url = new URL(request.url);
-    const path = url.pathname === '/' ? '/index.html' : url.pathname;
+    const requestedPath = url.pathname === '/' ? '/index.html' : url.pathname;
+    const path = files.has(requestedPath) ? requestedPath : '/index.html';
     const file = files.get(path);
     if (!file) return new Response('Not Found', { status: 404 });
     const headers = {
       'content-type': file[2],
       'cache-control': path === '/index.html' ? 'no-cache' : 'public, max-age=31536000, immutable',
       'x-content-type-options': 'nosniff',
+      'referrer-policy': 'same-origin',
     };
     return new Response(request.method === 'HEAD' ? null : decode(file[1]), { status: 200, headers });
   },
