@@ -5,7 +5,7 @@ const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
 const httpProtocol = window.location.protocol === 'https:' ? 'https:' : 'http:'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || `${httpProtocol}//${host}:8080`,
+  baseURL: import.meta.env.VITE_API_BASE_URL || `${httpProtocol}//${host}:8000`,
   timeout: 5000,
 })
 
@@ -14,7 +14,7 @@ export function getHistory(params = {}) {
 }
 
 export function connectRobotStream({ onData, onState, onCommandResult, onAuthResult }) {
-  const url = import.meta.env.VITE_WS_URL || `${wsProtocol}//${host}:8080/ws`
+  const url = import.meta.env.VITE_WS_URL || `${wsProtocol}//${host}:8000/ws/robot`
   const socket = new WebSocket(url)
   let closedByClient = false
 
@@ -27,6 +27,7 @@ export function connectRobotStream({ onData, onState, onCommandResult, onAuthRes
     try {
       const message = JSON.parse(event.data)
       if (message.type === 'robot_status') onData?.(message)
+      if (message.type === 'bridge_status') onState?.(message.connected ? 'bridge-online' : 'gateway-online')
       if (message.type === 'command_result') onCommandResult?.(message)
       if (message.type === 'auth_result') onAuthResult?.(message)
     } catch {

@@ -1,6 +1,6 @@
 # 智能巡检车监控系统
 
-项目由 Vue 3 监控网页和安全的 C++ 模拟后端组成。网站采用单一版本：所有用户都能查看监控数据，真实小车的控制功能由 C++ 后端验证密码后解锁。
+项目采用 `Vue → FastAPI → rosbridge → ROS2 C++ 节点` 架构。网站采用单一版本：所有用户都能查看监控数据，真实小车的控制功能由 FastAPI 网关验证密码后解锁。
 
 ## 当前功能
 
@@ -12,7 +12,7 @@
 - 演示控制，以及需要后端密码授权的真实控制
 - 开始、暂停、结束巡检和紧急停止命令
 
-当前 C++ 后端仍是安全模拟器，命令只改变模拟任务状态，不会驱动真实电机。
+浏览器演示模式只改变网页状态，不会驱动真实电机。`backend/` 中原有的 C++ 模拟器仅作为旧协议参考，不再是正式数据链路。
 
 ## 启动网页
 
@@ -21,11 +21,11 @@ npm.cmd install
 npm.cmd run dev
 ```
 
-浏览器打开 `http://localhost:5173`。网页默认连接与页面相同主机上的 `8080` 端口；也可以在 `.env` 中设置：
+浏览器打开 `http://localhost:5173`。网页默认连接与页面相同主机上的 FastAPI `8000` 端口；也可以在 `.env` 中设置：
 
 ```text
-VITE_API_BASE_URL=http://localhost:8080
-VITE_WS_URL=ws://localhost:8080/ws
+VITE_API_BASE_URL=http://localhost:8000
+VITE_WS_URL=ws://localhost:8000/ws/robot
 ```
 
 ## 统一数据来源
@@ -44,6 +44,6 @@ npm.cmd run build:site
 
 ## 控制安全
 
-控制密码只由 C++ 后端的 `ROBOT_CONTROL_PASSWORD` 环境变量提供。网页不会保存密码，WebSocket 断开后权限自动失效。正式接入真实底盘前，还必须实现限速、硬件急停、控制权互斥和断线停车。
+控制密码只由 FastAPI 网关的 `ROBOT_CONTROL_PASSWORD` 环境变量提供。网页不会保存密码，WebSocket 断开后权限自动失效。正式接入真实底盘前，还必须实现限速、硬件急停、控制权互斥、动作回执和断线停车。
 
-C++ 模拟后端的构建说明位于 `backend/README.md`。
+FastAPI 网关的配置和启动说明位于 `gateway/README.md`。C++ 模拟器位于 `backend/`，只用于旧协议参考。

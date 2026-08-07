@@ -50,7 +50,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid #54a8ff; outline-
 .status { border-radius: 999px; }
 .status i { width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: #36ddb9; box-shadow: 0 0 14px #36ddb9; }
 .status.offline i, .status.error i, .status.bad-data i, .status.stale i { background: #ff6375; box-shadow: 0 0 14px #ff6375; }
-.status.connecting i { background: #f7c75d; box-shadow: 0 0 14px #f7c75d; }
+.status.connecting i, .status.gateway-online i, .status.bridge-online i { background: #f7c75d; box-shadow: 0 0 14px #f7c75d; }
 .status.demo i { background: #54a8ff; box-shadow: 0 0 14px #54a8ff; }
 
 .metrics-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }

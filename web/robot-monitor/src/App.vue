@@ -15,9 +15,9 @@ const commandMessage = ref('正在连接小车后端。控制功能默认锁定�
 const lastUpdatedAt = ref(0)
 const clock = ref(Date.now())
 const readings = ref({
-  temperature: 25.6,
-  humidity: 58,
-  noise: 46,
+  temperature: null,
+  humidity: null,
+  noise: null,
   x: 0,
   y: 0,
   yaw: 0,
@@ -50,6 +50,8 @@ const statusText = computed(() => {
   return {
     demo: '演示运行中',
     connecting: '正在连接',
+    'gateway-online': '网关在线，ROS 离线',
+    'bridge-online': 'ROS 已连接，等待数据',
     online: '小车在线',
     offline: '小车离线',
     error: '连接异常',
@@ -85,6 +87,14 @@ function acceptData(data) {
   const sensors = data.sensors || data
   const robot = data.robot || data
   const pose = data.pose || data
+  if (sourceMode.value === 'robot' && typeof robot.online === 'boolean') {
+    if (robot.online) connectionState.value = 'online'
+    else if (connectionState.value === 'online') connectionState.value = 'bridge-online'
+    if (!robot.online) controlUnlocked.value = false
+  }
+  const incomingTimestamp = Number(data.timestamp)
+  if (sourceMode.value === 'robot' && (!data.has_real_data || !Number.isFinite(incomingTimestamp) || incomingTimestamp <= 0)) return
+  if (sourceMode.value === 'robot' && incomingTimestamp <= lastUpdatedAt.value) return
   readings.value = {
     ...readings.value,
     temperature: sensors.temperature ?? readings.value.temperature,
@@ -99,7 +109,7 @@ function acceptData(data) {
   if (robot.taskStatus || robot.task_status || data.mission_state) {
     missionState.value = robot.taskStatus || robot.task_status || data.mission_state
   }
-  lastUpdatedAt.value = Number(data.timestamp) || Date.now()
+  lastUpdatedAt.value = Number.isFinite(incomingTimestamp) && incomingTimestamp > 0 ? incomingTimestamp : Date.now()
   clock.value = Date.now()
   history.value.push({ time: new Date(lastUpdatedAt.value).toLocaleTimeString(), ...readings.value })
   if (history.value.length > 60) history.value.shift()
@@ -188,6 +198,16 @@ function startDemo() {
   connectionState.value = 'demo'
   controlUnlocked.value = false
   missionState.value = '待命'
+  readings.value = {
+    temperature: 25.6,
+    humidity: 58,
+    noise: 46,
+    x: 0,
+    y: 0,
+    yaw: 0,
+    battery: 87,
+    speed: 0,
+  }
   history.value = []
   commandMessage.value = '演示控制只改变网页状态，不会向真实小车发送命令。'
   mockTick()
@@ -208,6 +228,8 @@ function connectBackend() {
       connectionState.value = state
       if (state !== 'online') controlUnlocked.value = false
       if (state === 'offline' || state === 'error') commandMessage.value = '小车后端未连接。可重新连接，或启动演示数据。'
+      if (state === 'gateway-online') commandMessage.value = 'FastAPI 已连接，但 rosbridge 尚未连接。'
+      if (state === 'bridge-online') commandMessage.value = 'rosbridge 已连接，正在等待 ROS2 话题数据。'
     },
     onCommandResult: (result) => {
       commandMessage.value = result.message || (result.ok ? '命令已接收' : '命令被拒绝')
@@ -347,7 +369,7 @@ onBeforeUnmount(() => {
         :class="{ danger: card.value > limits[card.key] }"
       >
         <div class="metric-heading"><span>{{ card.label }}</span><small>{{ card.hint }}</small></div>
-        <div class="metric-value"><strong>{{ card.value }}</strong><span>{{ card.unit }}</span></div>
+        <div class="metric-value"><strong>{{ card.value ?? '—' }}</strong><span>{{ card.unit }}</span></div>
       </article>
       <article class="metric-card task-card">
         <div class="metric-heading"><span>车辆任务</span><small>{{ sourceMode === 'mock' ? '演示状态' : '实时状态' }}</small></div>
