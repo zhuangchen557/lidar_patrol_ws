@@ -34,3 +34,4 @@ ros2 launch vehicle_bringup bringup.launch.py
 
 - 接口规范：[`docs/接口规范.md`](docs/接口规范.md)
 - 项目方案：`docs/项目方案.md`
+- 前端监控平台：[`web/robot-monitor/README.md`](web/robot-monitor/README.md)
