@@ -8,7 +8,7 @@
 
 ## 技术栈
 
-ROS2 Jazzy · Nav2 · SLAM Toolbox · RPLIDAR A1 · CAN 总线
+ROS2 Jazzy · Nav2 · SLAM Toolbox · LD19（DTOF） · CAN 总线
 
 ## 快速开始
 
