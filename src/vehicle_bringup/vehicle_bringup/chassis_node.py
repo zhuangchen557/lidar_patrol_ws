@@ -32,7 +32,8 @@ class ChassisNode(Node):
 
             config = VehicleConfig()
             self.car = FourWheelVehicle(config)
-            self.get_logger().info("YK_CAN SDK 已加载")
+            self.car.connect()
+            self.get_logger().info("YK_CAN SDK 已加载，已连接 CAN115 (192.168.0.7:5578)")
         except Exception as e:
             self.get_logger().warn(f"YK_CAN SDK 不可用: {e}，将以模拟模式运行")
 
@@ -65,17 +66,17 @@ class ChassisNode(Node):
         self.get_logger().info("底盘节点启动完成")
 
     def cmd_callback(self, msg: Twist):
-        """接收 /cmd_vel 指令 → 调用 set_motion"""
+        """接收 /cmd_vel 指令 → 归一化到 [-1,1] → 调用 set_motion"""
         self.last_cmd_time = self.get_clock().now()
-        self.last_cmd_linear = msg.linear.x
-        self.last_cmd_angular = msg.angular.z
+
+        lin_norm = max(-1.0, min(1.0, msg.linear.x / MAX_LINEAR_SPEED))
+        ang_norm = max(-1.0, min(1.0, msg.angular.z / MAX_ANGULAR_SPEED))
+        self.last_cmd_linear = lin_norm * MAX_LINEAR_SPEED
+        self.last_cmd_angular = ang_norm * MAX_ANGULAR_SPEED
 
         if self.car is not None:
             try:
-                self.car.set_motion(
-                    linear=msg.linear.x,
-                    angular=msg.angular.z,
-                )
+                self.car.set_motion(linear=lin_norm, angular=ang_norm)
             except Exception as e:
                 self.get_logger().error(f"set_motion 失败: {e}")
 
@@ -101,9 +102,9 @@ class ChassisNode(Node):
         if dt <= 0:
             return
 
-        # --- 根据最近一次 /cmd_vel 推算位姿 ---
-        vx = self.last_cmd_linear * MAX_LINEAR_SPEED
-        vth = self.last_cmd_angular * MAX_ANGULAR_SPEED
+        # --- 根据最近一次 /cmd_vel 推算位姿（last_cmd_* 已是物理值） ---
+        vx = self.last_cmd_linear
+        vth = self.last_cmd_angular
 
         delta_x = vx * math.cos(self.theta) * dt
         delta_y = vx * math.sin(self.theta) * dt
