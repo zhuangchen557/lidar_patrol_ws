@@ -14,8 +14,8 @@ from tf2_ros import TransformBroadcaster
 
 
 # ============ 待校准参数 ============
-MAX_LINEAR_SPEED = 0.5       # 最大线速度 m/s（需要实测校准）
-MAX_ANGULAR_SPEED = 1.0      # 最大角速度 rad/s（需要实测校准）
+MAX_LINEAR_SPEED = 1.257     # 最大线速度 m/s（实测标定：5s空转6.25圈，周长1.005m）
+MAX_ANGULAR_SPEED = 16.0     # 最大角速度 rad/s（实测标定：转1圈实际16圈）
 WHEEL_BASE = 0.35            # 前后轴距 米（需要实测）
 
 
