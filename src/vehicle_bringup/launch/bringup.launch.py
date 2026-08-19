@@ -1,9 +1,12 @@
 """一键启动巡检车全部节点"""
+import os
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, LogInfo, GroupAction
+from launch.actions import DeclareLaunchArgument, LogInfo, GroupAction, IncludeLaunchDescription
 from launch.conditions import IfCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from ament_index_python.packages import get_package_share_directory
 
 
 def generate_launch_description():
@@ -25,21 +28,13 @@ def generate_launch_description():
                 output="screen",
             ),
 
-            # ============ 激光雷达（庄晨负责，todo） ============
-            # Node(
-            #     package="rplidar_ros",
-            #     executable="rplidar_composition",
-            #     name="rplidar_node",
-            #     output="screen",
-            #     parameters=[{
-            #         "serial_port": "/dev/ttyUSB0",
-            #         "frame_id": "laser",
-            #         "angle_compensate": True,
-            #         "scan_mode": "Standard",
-            #     }],
-            # ),
+            # ============ 激光雷达（LD19，串口 /dev/ttyUSB0） ============
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(os.path.join(
+                    get_package_share_directory("ldlidar"), "launch", "ld19.launch.py")),
+            ),
 
-            # ============ SLAM Toolbox 建图（庄晨负责，传 use_slam:=true 启动） ============
+            # ============ SLAM Toolbox 建图（传 use_slam:=true 启动） ============
             # Node(
             #     condition=IfCondition(use_slam),
             #     package="slam_toolbox",
