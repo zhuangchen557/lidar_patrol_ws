@@ -18,7 +18,11 @@ if %errorlevel% neq 0 (
 )
 timeout /t 2 >nul
 
-echo [3/3] Start bringup (chassis + lidar + TF), Ctrl+C to stop ...
+echo [3/4] Start TCP relay 127.0.0.1:5578 -> CAN115 192.168.0.7:5578 ...
+start /b "" python "%~dp0forward_5578.py"
+timeout /t 2 >nul
+
+echo [4/4] Start bringup (chassis + lidar + TF), Ctrl+C to stop ...
 wsl -d Ubuntu -e bash -c "~/lidar_patrol_ws/scripts/start_car.sh"
 
 pause

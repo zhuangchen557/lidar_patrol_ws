@@ -30,10 +30,12 @@ class ChassisNode(Node):
             sys.path.insert(0, "/home/sagac1ty/can_sdk")
             from yk_can_sdk import FourWheelVehicle, VehicleConfig
 
-            config = VehicleConfig()
+            can_host = self.declare_parameter("can_host", "127.0.0.1").value
+            can_port = self.declare_parameter("can_port", 5578).value
+            config = VehicleConfig(host=can_host, port=can_port)
             self.car = FourWheelVehicle(config)
             self.car.connect()
-            self.get_logger().info("YK_CAN SDK 已加载，已连接 CAN115 (192.168.0.7:5578)")
+            self.get_logger().info(f"YK_CAN SDK 已加载，已连接 CAN115 ({can_host}:{can_port})")
         except Exception as e:
             self.get_logger().warn(f"YK_CAN SDK 不可用: {e}，将以模拟模式运行")
 
