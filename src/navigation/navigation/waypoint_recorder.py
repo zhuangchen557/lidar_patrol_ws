@@ -2,9 +2,9 @@
 """
 Waypoint recorder for the patrol vehicle.
 
-Records the robot pose in the MAP frame, not raw odom coordinates.
-It listens to /odom and transforms odom -> map through tf2.
-The resulting route is saved as JSON.
+Records the robot pose in the MAP frame by default; set
+map_frame:=odom to record raw odometry poses (works without SLAM,
+e.g. bench / wheel-off-ground validation).
 """
 
 import json
@@ -54,9 +54,12 @@ class WaypointRecorder(Node):
         self.timer = self.create_timer(0.1, self.sample_pose)
 
         self.get_logger().info("Waypoint 录制器启动")
-        self.get_logger().info(
-            f"要求 TF: {self.map_frame} -> {self.base_frame}"
-        )
+        if self.map_frame == "odom":
+            self.get_logger().info("odom 模式：直接记录里程计位姿（无需 map TF）")
+        else:
+            self.get_logger().info(
+                f"要求 TF: {self.map_frame} -> {self.base_frame}"
+            )
 
     def odom_callback(self, msg: Odometry):
         self.latest_odom = msg
@@ -81,23 +84,28 @@ class WaypointRecorder(Node):
         if elapsed < self.sample_interval:
             return
 
-        try:
-            transform = self.tf_buffer.lookup_transform(
-                self.map_frame,
-                self.base_frame,
-                rclpy.time.Time(),
-                timeout=rclpy.duration.Duration(seconds=0.2),
-            )
-        except TransformException as exc:
-            self.get_logger().warn(
-                f"暂时无法获取 {self.map_frame}->{self.base_frame} TF: {exc}",
-                throttle_duration_sec=3.0,
-            )
-            return
-
-        x = transform.transform.translation.x
-        y = transform.transform.translation.y
-        yaw = self.quat_to_yaw(transform.transform.rotation)
+        if self.map_frame == "odom":
+            pose = self.latest_odom.pose.pose
+            x = pose.position.x
+            y = pose.position.y
+            yaw = self.quat_to_yaw(pose.orientation)
+        else:
+            try:
+                transform = self.tf_buffer.lookup_transform(
+                    self.map_frame,
+                    self.base_frame,
+                    rclpy.time.Time(),
+                    timeout=rclpy.duration.Duration(seconds=0.2),
+                )
+            except TransformException as exc:
+                self.get_logger().warn(
+                    f"暂时无法获取 {self.map_frame}->{self.base_frame} TF: {exc}",
+                    throttle_duration_sec=3.0,
+                )
+                return
+            x = transform.transform.translation.x
+            y = transform.transform.translation.y
+            yaw = self.quat_to_yaw(transform.transform.rotation)
 
         if self.last_x is not None:
             distance = math.hypot(x - self.last_x, y - self.last_y)
