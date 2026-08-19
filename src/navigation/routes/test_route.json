@@ -1,0 +1,10 @@
+{
+  "route_name": "test_patrol_route",
+  "frame_id": "map",
+  "points": [
+    {"id": 1, "x": 0.0, "y": 0.0, "yaw": 0.0, "label": "起点"},
+    {"id": 2, "x": 1.0, "y": 0.0, "yaw": 0.0, "label": "巡检点1"},
+    {"id": 3, "x": 2.0, "y": 0.0, "yaw": 1.57, "label": "巡检点2"},
+    {"id": 4, "x": 2.0, "y": 1.0, "yaw": 1.57, "label": "巡检点3"}
+  ]
+}
