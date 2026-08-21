@@ -1,0 +1,11 @@
+laser_avoidance:
+  ros__parameters:
+    scan_topic: /scan
+    cmd_vel_topic: /cmd_vel
+    safe_distance: 1.0
+    stop_distance: 0.50
+    forward_speed: 0.20
+    slow_speed: 0.10
+    turn_speed: 0.55
+    front_angle_deg: 25.0
+    side_angle_deg: 70.0
