@@ -15,6 +15,21 @@
 | 周光玮 | 23123960 | 前端 | `feature/frontend` | `visualization` |
 
 ---
+ROS2 Jazzy · Nav2 · SLAM Toolbox · LD19（激光雷达） · CAN 总线
+
+## 项目结构
+
+```
+lidar_patrol_ws/
+├── slam/               # SLAM 建图模块
+│   ├── scripts/        # 建图脚本（scan_repacker、handheld_mapping 等）
+│   ├── config/         # 参数文件（slam_toolbox、rf2o、amcl、nav2）
+│   ├── maps/           # 实测地图
+│   └── README.md       # 模块详细说明
+├── YK_CANSDK/          # 底盘 CAN 通信 SDK（Python）
+├── YK_CANSDK_CPP/      # 底盘 CAN 通信 SDK（C++）
+└── docs/               # 项目文档
+```
 
 ## 环境配置
 
@@ -42,6 +57,22 @@ source ~/.bashrc
 sudo apt install python3-colcon-common-extensions -y
 sudo apt install ros-jazzy-slam-toolbox ros-jazzy-navigation2 ros-jazzy-nav2-bringup ros-jazzy-rosbridge-server -y
 ```
+
+### 推车建图
+
+```bash
+# 克隆仓库
+git clone git@github.com:zhuangchen557/lidar_patrol_ws.git
+cd lidar_patrol_ws
+
+# 启动建图（需先挂载雷达 USB）
+bash slam/scripts/handheld_mapping.sh
+
+# 保存地图
+ros2 run nav2_map_server map_saver_cli -f ~/my_map
+```
+
+详细说明见 [`slam/README.md`](slam/README.md)。
 
 ---
 
@@ -212,3 +243,9 @@ A: 别人改了你在改的同一个文件。先 `git pull origin dev`，合并�
 
 **Q: Git 要我输密码但总失败？**
 A: 用 SSH 方式 clone，不要用 HTTPS。重新设置 remote：`git remote set-url origin git@github.com:zhuangchen557/lidar_patrol_ws.git`
+
+## 相关文档
+
+- SLAM 建图：[`slam/README.md`](slam/README.md)
+- 接口规范：[`docs/接口规范.md`](docs/接口规范.md)
+- 项目方案：`docs/项目方案.md`
