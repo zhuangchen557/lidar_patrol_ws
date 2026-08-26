@@ -37,6 +37,8 @@ class ChassisNode(Node):
             self.car = FourWheelVehicle(config)
             self.car.connect()
             self.get_logger().info(f"YK_CAN SDK 已加载，已连接 CAN115 ({can_host}:{can_port})")
+            # --- 自动重连：CAN115 连接断开后每 2s 尝试恢复 ---
+            self.create_timer(2.0, self._check_connection)
         except Exception as e:
             self.get_logger().warn(f"YK_CAN SDK 不可用: {e}，将以模拟模式运行")
 
@@ -67,6 +69,18 @@ class ChassisNode(Node):
         self.last_cmd_time = self.get_clock().now()
 
         self.get_logger().info("底盘节点启动完成")
+
+    def _check_connection(self):
+        """连接断开后自动重连（SDK 自身不重连，断了会永久报错）"""
+        if self.car is None or self.car.is_connected:
+            return
+        self.get_logger().warn("底盘连接断开，尝试重连...")
+        try:
+            self.car.close()
+            self.car.connect()
+            self.get_logger().info("底盘已自动重连")
+        except Exception as e:
+            self.get_logger().warn(f"底盘重连失败: {e}")
 
     def cmd_callback(self, msg: Twist):
         """接收 /cmd_vel 指令 → 归一化到 [-1,1] → 调用 set_motion"""

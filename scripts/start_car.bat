@@ -12,7 +12,11 @@ start /b "" wsl -d Ubuntu -u root -e bash -c "sleep 7200"
 timeout /t 3 >nul
 
 echo [2/3] Attach lidar USB (busid 1-9) to WSL ...
-usbipd attach --wsl --busid 1-9
+usbipd bind --busid 1-9 2>nul
+if %errorlevel% neq 0 (
+    echo   WARNING: bind failed - lidar not plugged in?
+)
+usbipd attach --wsl Ubuntu --busid 1-9
 if %errorlevel% neq 0 (
     echo   WARNING: attach failed - lidar not plugged or already attached
 )
