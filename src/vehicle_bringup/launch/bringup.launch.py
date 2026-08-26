@@ -34,17 +34,37 @@ def generate_launch_description():
                     get_package_share_directory("ldlidar"), "launch", "ld19.launch.py")),
             ),
 
-            # ============ SLAM Toolbox 建图（传 use_slam:=true 启动） ============
-            # Node(
-            #     condition=IfCondition(use_slam),
-            #     package="slam_toolbox",
-            #     executable="async_slam_toolbox_node",
-            #     name="slam_toolbox",
-            #     output="screen",
-            #     parameters=["/path/to/mapper_params.yaml"],
-            # ),
+            # ============ SLAM 建图（use_slam:=true 启动） ============
+            # 链路: /scan → scan_repacker(重采样固定360点) → /scan_fixed → slam_toolbox
+            # repacker 解决 usbipd 抖动导致 LD19 每帧点数不一致、slam_toolbox 拒帧的问题
+            GroupAction(
+                condition=IfCondition(use_slam),
+                actions=[
+                    Node(
+                        package="vehicle_bringup",
+                        executable="scan_repacker",
+                        name="scan_repacker",
+                        output="screen",
+                        parameters=[{
+                            "input_topic": "/scan",
+                            "output_topic": "/scan_fixed",
+                            "output_count": 360,
+                            "min_input_points": 300,
+                        }],
+                    ),
+                    Node(
+                        package="slam_toolbox",
+                        executable="async_slam_toolbox_node",
+                        name="slam_toolbox",
+                        output="screen",
+                        parameters=[os.path.join(
+                            get_package_share_directory("vehicle_bringup"),
+                            "config", "mapper_params_online_async.yaml")],
+                    ),
+                ],
+            ),
 
-            # ============ Nav2 导航栈（待调通底盘后启用） ============
+            # ============ Nav2 导航栈（建图完成后启用） ============
             # IncludeLaunchDescription(
             #     PythonLaunchDescriptionSource([
             #         "/opt/ros/jazzy/share/nav2_bringup/launch/navigation_launch.py",
