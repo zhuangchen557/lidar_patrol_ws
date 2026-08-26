@@ -12,12 +12,21 @@ from ament_index_python.packages import get_package_share_directory
 def generate_launch_description():
     # 是否启动 SLAM（正常巡检时关闭，建图时打开）
     use_slam = LaunchConfiguration("use_slam", default="false")
+    # 是否启动 Nav2 定位+导航栈（使用已保存地图时打开）
+    use_nav2 = LaunchConfiguration("use_nav2", default="false")
     # 是否启动键盘遥控
     use_keyboard = LaunchConfiguration("use_keyboard", default="false")
+
+    pkg_share = get_package_share_directory("vehicle_bringup")
+    nav2_params_file = os.path.join(pkg_share, "config", "nav2_params.yaml")
+    map_file = os.path.join(pkg_share, "config", "maps", "my_map.yaml")
+    nav2_bringup_dir = get_package_share_directory("nav2_bringup")
 
     return LaunchDescription(
         [
             DeclareLaunchArgument("use_slam", default_value="false", description="启动 SLAM Toolbox 建图"),
+            DeclareLaunchArgument("use_nav2", default_value="false", description="启动 map_server+AMCL+Nav2 导航"),
+            DeclareLaunchArgument("map", default_value=map_file, description="地图 yaml 路径"),
             DeclareLaunchArgument("use_keyboard", default_value="false", description="启动键盘遥控节点"),
 
             # ============ 底盘控制（必须） ============
@@ -64,12 +73,31 @@ def generate_launch_description():
                 ],
             ),
 
-            # ============ Nav2 导航栈（建图完成后启用） ============
-            # IncludeLaunchDescription(
-            #     PythonLaunchDescriptionSource([
-            #         "/opt/ros/jazzy/share/nav2_bringup/launch/navigation_launch.py",
-            #     ]),
-            # ),
+            # ============ Nav2 定位+导航（use_nav2:=true 启用，需已保存地图） ============
+            GroupAction(
+                condition=IfCondition(use_nav2),
+                actions=[
+                    IncludeLaunchDescription(
+                        PythonLaunchDescriptionSource(os.path.join(
+                            nav2_bringup_dir, "launch", "localization_launch.py")),
+                        launch_arguments={
+                            "map": map_file,
+                            "params_file": nav2_params_file,
+                            "use_sim_time": "false",
+                            "autostart": "true",
+                        }.items(),
+                    ),
+                    IncludeLaunchDescription(
+                        PythonLaunchDescriptionSource(os.path.join(
+                            nav2_bringup_dir, "launch", "navigation_launch.py")),
+                        launch_arguments={
+                            "params_file": nav2_params_file,
+                            "use_sim_time": "false",
+                            "autostart": "true",
+                        }.items(),
+                    ),
+                ],
+            ),
 
             # ============ 传感器节点（刘瑜彤负责，todo） ============
             # Node(
