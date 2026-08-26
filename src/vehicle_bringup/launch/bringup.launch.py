@@ -37,6 +37,14 @@ def generate_launch_description():
                 output="screen",
             ),
 
+            # ============ 传感器桥（EnzoPatrolLab 网关快照 -> /sensor/* 标准话题） ============
+            Node(
+                package="vehicle_bringup",
+                executable="sensor_bridge_node",
+                name="sensor_bridge_node",
+                output="screen",
+            ),
+
             # ============ 激光雷达（LD19，串口 /dev/ttyUSB0） ============
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(os.path.join(
