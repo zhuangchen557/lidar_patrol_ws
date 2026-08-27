@@ -51,6 +51,14 @@ def generate_launch_description():
                     get_package_share_directory("ldlidar"), "launch", "ld19.launch.py")),
             ),
 
+            # ============ /scan 双QoS转发（LD19 BEST_EFFORT -> RELIABLE，供 rosbridge/Windows 侧订阅） ============
+            Node(
+                package="vehicle_bringup",
+                executable="scan_repub",
+                name="scan_repub",
+                output="screen",
+            ),
+
             # ============ SLAM 建图（use_slam:=true 启动） ============
             # 链路: /scan → scan_repacker(重采样固定360点) → /scan_fixed → slam_toolbox
             # repacker 解决 usbipd 抖动导致 LD19 每帧点数不一致、slam_toolbox 拒帧的问题

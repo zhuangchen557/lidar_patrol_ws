@@ -22,6 +22,7 @@ setup(
             "chassis_node = vehicle_bringup.chassis_node:main",
             "scan_repacker = vehicle_bringup.scan_repacker:main",
             "sensor_bridge_node = vehicle_bringup.sensor_bridge_node:main",
+    "scan_repub = vehicle_bringup.scan_repub:main",
         ],
     },
 )
