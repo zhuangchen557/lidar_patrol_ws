@@ -249,3 +249,4 @@ A: 用 SSH 方式 clone，不要用 HTTPS。重新设置 remote：`git remote se
 - SLAM 建图：[`slam/README.md`](slam/README.md)
 - 接口规范：[`docs/接口规范.md`](docs/接口规范.md)
 - 项目方案：`docs/项目方案.md`
+- 前端监控平台：[`web/robot-monitor/README.md`](web/robot-monitor/README.md)

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.vite/
+*.log
+gateway/.venv/
+gateway/.env
+gateway/data/
+__pycache__/
+*.pyc
