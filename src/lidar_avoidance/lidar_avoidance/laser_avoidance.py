@@ -27,7 +27,9 @@ class LaserAvoidance(Node):
         self.declare_parameter('scan_topic', '/scan')
         self.declare_parameter('cmd_vel_topic', '/cmd_vel')
         self.declare_parameter('safe_distance', 1.0)
-        self.declare_parameter('stop_distance', 0.50)
+        self.declare_parameter("stop_distance", 0.50)
+        self.declare_parameter("side_stop_distance", 0.30)
+        self.declare_parameter("side_safe_distance", 0.30)
         self.declare_parameter('forward_speed', 0.20)
         self.declare_parameter('slow_speed', 0.10)
         self.declare_parameter('turn_speed', 0.55)
@@ -38,7 +40,9 @@ class LaserAvoidance(Node):
         cmd_vel_topic = self.get_parameter('cmd_vel_topic').value
 
         self.safe_distance = float(self.get_parameter('safe_distance').value)
-        self.stop_distance = float(self.get_parameter('stop_distance').value)
+        self.stop_distance = float(self.get_parameter("stop_distance").value)
+        self.side_stop_distance = float(self.get_parameter("side_stop_distance").value)
+        self.side_safe_distance = float(self.get_parameter("side_safe_distance").value)
         self.forward_speed = float(self.get_parameter('forward_speed').value)
         self.slow_speed = float(self.get_parameter('slow_speed').value)
         self.turn_speed = float(self.get_parameter('turn_speed').value)
@@ -97,13 +101,13 @@ class LaserAvoidance(Node):
 
         nearest_side = min(left, right)
 
-        if front < self.stop_distance or nearest_side < self.stop_distance:
+        if front < self.stop_distance or nearest_side < self.side_stop_distance:
             # 前方或任一侧太近: 停 + 向更空旷的一侧转
             cmd.linear.x = 0.0
             cmd.angular.z = self.turn_speed if left > right else -self.turn_speed
             state = 'TURN'
 
-        elif front < self.safe_distance or nearest_side < self.safe_distance:
+        elif front < self.safe_distance or nearest_side < self.side_safe_distance:
             # 接近任何方向障碍: 减速
             cmd.linear.x = self.slow_speed
             cmd.angular.z = 0.0
