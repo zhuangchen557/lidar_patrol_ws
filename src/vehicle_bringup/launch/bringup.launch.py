@@ -129,14 +129,15 @@ def generate_launch_description():
             #     output="screen",
             # ),
 
-            # ============ rosbridge（龚欣卉负责，WebSocket 桥接） ============
-            # Node(
-            #     package="rosbridge_server",
-            #     executable="rosbridge_websocket",
-            #     name="rosbridge_websocket",
-            #     output="screen",
-            #     parameters=[{"port": 9090}],
-            # ),
+            # ============ rosbridge（WebSocket 桥接，EnzoPatrolLab 数据源） ============
+            # 注意：必须在 scan_repub 之后启动，否则订阅 /scan 时报 topic 未广告
+            Node(
+                package="rosbridge_server",
+                executable="rosbridge_websocket",
+                name="rosbridge_websocket",
+                output="screen",
+                parameters=[{"port": 9090, "address": "127.0.0.1"}],
+            ),
 
             # ============ 键盘遥控（调试用，传 use_keyboard:=true 启动） ============
             Node(
