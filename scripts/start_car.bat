@@ -12,7 +12,7 @@ start /b "" wsl -d Ubuntu -u root -e bash -c "sleep 7200"
 timeout /t 3 >nul
 
 echo [1.5/3] Clean old forwarder processes ...
-powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { $_.CommandLine -like '*forward_5578*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
+%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { $_.CommandLine -like '*forward_5578*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
 timeout /t 1 >nul
 
 echo [2/3] Attach lidar USB (busid 1-10) to WSL ...
