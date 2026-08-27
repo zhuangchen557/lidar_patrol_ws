@@ -1,252 +1,180 @@
-# lidar_patrol_ws — 开发指南（dev 分支）
+# 巡检车项目 — 快速开始
 
 > 基于激光雷达的巡检车 · 上海泾研创智 · 生产实习项目一
 
 ---
 
-## 团队成员与分支
+## 一键启动（推荐）
 
-| 成员 | 学号 | 职责 | 开发分支 | 模块 |
-|------|------|------|----------|------|
-| 胡祖宸 | 23121710 | 组长 · 底盘+集成 | `feature/chassis` | `vehicle_bringup` |
-| 庄晨 | 23123435 | 后端 | `feature/lidar-slam` | `lidar_slam` |
-| 龚欣卉 | 23121826 | 后端 | `feature/navigation` | `navigation` |
-| 刘瑜彤 | 23121587 | 硬件 | `feature/sensor` | `sensor_bringup` |
-| 周光玮 | 23123960 | 前端 | `feature/frontend` | `visualization` |
+### 前置条件
+- Windows 11 + WSL2 Ubuntu 24.04
+- ROS2 Jazzy 已安装（见下方环境安装）
+- 激光雷达 USB 已插入电脑
+
+### 启动步骤
+
+**1. 管理员 PowerShell 挂载雷达 USB：**
+```powershell
+usbipd attach --wsl Ubuntu --busid 1-10
+```
+
+**2. 双击运行：**
+```
+docs/start_car.bat
+```
+自动完成：清理旧转发器 -> 起 TCP 转发器 -> 挂载雷达 -> 编译 -> 启动底盘+雷达+TF
+
+**3. 键盘遥控（新终端）：**
+```bash
+cd ~/lidar_patrol_ws && source install/setup.bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
+# i=前进  ,=后退  j=左转  l=右转  k=停
+```
 
 ---
-ROS2 Jazzy · Nav2 · SLAM Toolbox · LD19（激光雷达） · CAN 总线
 
-## 项目结构
+## 完整操作指南
 
-```
-lidar_patrol_ws/
-├── slam/               # SLAM 建图模块
-│   ├── scripts/        # 建图脚本（scan_repacker、handheld_mapping 等）
-│   ├── config/         # 参数文件（slam_toolbox、rf2o、amcl、nav2）
-│   ├── maps/           # 实测地图
-│   └── README.md       # 模块详细说明
-├── YK_CANSDK/          # 底盘 CAN 通信 SDK（Python）
-├── YK_CANSDK_CPP/      # 底盘 CAN 通信 SDK（C++）
-└── docs/               # 项目文档
-```
+详细说明请看：**[docs/快速启动指南.md](docs/快速启动指南.md)**
 
-## 环境配置
+包含：手动分步启动、RViz 可视化、避障测试、路线录制回放、排错指南
 
-### Ubuntu 24.04 安装 ROS2 Jazzy
+---
 
+## 环境安装
+
+### 1. 安装 ROS2 Jazzy
 ```bash
-# 1. 添加 ROS2 源
 sudo apt update && sudo apt install software-properties-common curl -y
 sudo add-apt-repository universe
 sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
-
-# 2. 安装
-sudo apt update
-sudo apt install ros-jazzy-desktop -y
-
-# 3. 自动加载环境
+sudo apt update && sudo apt install ros-jazzy-desktop -y
 echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
-source ~/.bashrc
 ```
 
-### 安装编译工具和项目依赖
-
+### 2. 安装项目依赖
 ```bash
 sudo apt install python3-colcon-common-extensions -y
 sudo apt install ros-jazzy-slam-toolbox ros-jazzy-navigation2 ros-jazzy-nav2-bringup ros-jazzy-rosbridge-server -y
 ```
 
-### 推车建图
-
+### 3. 克隆仓库
 ```bash
-# 克隆仓库
 git clone git@github.com:zhuangchen557/lidar_patrol_ws.git
 cd lidar_patrol_ws
-
-# 启动建图（需先挂载雷达 USB）
-bash slam/scripts/handheld_mapping.sh
-
-# 保存地图
-ros2 run nav2_map_server map_saver_cli -f ~/my_map
-```
-
-详细说明见 [`slam/README.md`](slam/README.md)。
-
----
-
-## 克隆仓库并创建分支
-
-```bash
-# 1. 克隆
-git clone git@github.com:zhuangchen557/lidar_patrol_ws.git
-cd lidar_patrol_ws
-
-# 2. 切到 dev
 git checkout dev
-
-# 3. 创建自己的开发分支（每人选自己的那行）
-git checkout -b feature/chassis      # 胡祖宸
-git checkout -b feature/lidar-slam   # 庄晨
-git checkout -b feature/navigation   # 龚欣卉
-git checkout -b feature/sensor       # 刘瑜彤
-git checkout -b feature/frontend     # 周光玮
-
-# 4. 推送到远端
-git push -u origin feature/<你的分支名>
-```
-
----
-
-## 创建自己的 ROS2 包
-
-```bash
-cd ~/lidar_patrol_ws/src
-
-# 胡祖宸
-ros2 pkg create --build-type ament_python vehicle_bringup
-
-# 庄晨
-ros2 pkg create --build-type ament_python lidar_slam
-mkdir -p lidar_slam/lidar_slam lidar_slam/launch lidar_slam/config lidar_slam/maps
-
-# 龚欣卉
-ros2 pkg create --build-type ament_python navigation
-mkdir -p navigation/navigation navigation/launch
-
-# 刘瑜彤
-ros2 pkg create --build-type ament_python sensor_bringup
-mkdir -p sensor_bringup/sensor_bringup
-
-# 周光玮
-ros2 pkg create --build-type ament_python visualization
-mkdir -p visualization/frontend
-# 然后在 visualization/frontend 内 npm create vue@latest
-```
-
-> 创建后在包目录下确保有 `__init__.py`（Python 包）和 `launch/` 目录。
-
----
-
-## 每日开发流程
-
-### 上午开工前（必须）
-
-```bash
-cd ~/lidar_patrol_ws
-git checkout dev
-git pull origin dev
-git checkout feature/<你的分支名>
-git merge dev
 colcon build --symlink-install
 source install/setup.bash
 ```
 
-### 开发中
+---
 
+## SLAM 建图
 ```bash
-# 查看改动
-git status
-git diff
-
-# 添加文件
-git add src/<你的包名>/<文件>.py
-
-# 提交
-git commit -m "简短描述：做了什么"
+# 挂载雷达后（见一键启动步骤1）
+cd ~/lidar_patrol_ws && source install/setup.bash
+ros2 launch vehicle_bringup bringup.launch.py use_slam:=true
+# 推车走一圈建图，完成后保存：
+ros2 run nav2_map_server map_saver_cli -f ~/my_map
 ```
 
-### 每天收工前（必须）
-
-```bash
-git push
-```
-
-### 功能完成后 — 发起 PR
-
-1. 浏览器打开 `https://github.com/zhuangchen557/lidar_patrol_ws`
-2. 点 `Pull requests` → `New pull request`
-3. base 选 **`dev`**，compare 选你的 **`feature/<分支名>`**
-4. 标题格式：`[模块名] 做了什么`
-5. 正文写明：改了什么、怎么测试、是否依赖其他人
-6. 点 `Create pull request`，然后群里 @组长
+详细说明：[slam/README.md](slam/README.md)
 
 ---
 
-## 目录结构
+## 导航避障
+```bash
+ros2 launch vehicle_bringup bringup.launch.py use_nav2:=true
+# RViz 里 2D Pose Estimate 定位 -> 发 Nav2 Goal 导航
+```
+
+---
+
+## 路线巡检
+```bash
+# 录制路线
+ros2 run navigation waypoint_recorder routes/my_route.json map_frame:=odom
+# 回放（直接控制）
+ros2 run navigation waypoint_player routes/my_route.json --ros-args -p use_nav2:=false
+```
+
+---
+
+## 可视化监控
+
+### RViz2（WSL 内）
+```bash
+rviz2
+# Fixed Frame -> base_laser -> Add -> /scan (LaserScan) + TF
+```
+
+### EnzoPatrolLab 实验台（Windows）
+双击 `Enzo巡迹实验台.exe`，实时显示传感器数据+雷达扫描+轨迹
+
+### Web 监控平台
+```bash
+cd web/robot-monitor
+npm install && npm run dev
+```
+
+---
+
+## 项目结构
 
 ```
 lidar_patrol_ws/
-├── README.md
-├── .gitignore
-├── docs/
-│   └── 接口规范.md           # ← 必读！
 ├── src/
-│   ├── custom_interfaces/    # 共享消息（msg/SensorData.msg, msg/Waypoint.msg）
-│   ├── vehicle_bringup/      # 胡祖宸：底盘控制 + 启动脚本
-│   ├── lidar_slam/           # 庄晨：雷达 + SLAM + 定位
-│   ├── navigation/           # 龚欣卉：避障 + waypoint + 后端 API
-│   ├── sensor_bringup/       # 刘瑜彤：传感器驱动
-│   └── visualization/        # 周光玮：Vue3 可视化前端
-├── build/    (本地，已忽略)
-├── install/  (本地，已忽略)
-└── log/      (本地，已忽略)
+│   ├── vehicle_bringup/     # F1 底盘控制 + F2 雷达驱动
+│   ├── lidar_avoidance/     # F4 避障
+│   ├── navigation/          # F5 路线巡检
+│   └── vehicle_bringup/     # F3 SLAM / F4 Nav2 集成
+├── slam/                    # SLAM 建图模块
+├── web/robot-monitor/       # F7 可视化前端
+├── scripts/                 # 标定脚本、转发器
+├── docs/                    # 快速启动指南、应用指南、接口规范
+└── YK_CANSDK/               # 底盘 CAN SDK
 ```
 
 ---
 
-## 注意事项
+## 相关文档
 
-- **开发前必读**：[`docs/接口规范.md`](docs/接口规范.md)，所有 Topic 名称、消息格式、TF 坐标系以此为准
-- 修改 `custom_interfaces/msg/*.msg` 后，**通知全员重新 `colcon build`**
-- 每天收工前必须 `git push`，代码只存本地=白写
-- `.gitignore` 已忽略 `build/` `install/` `log/` `__pycache__/`，不要把这些目录提交
-- 编译后记得 `source install/setup.bash`，否则 ROS2 找不到你的包
-- 遇到合并冲突解决不了，群里叫组长
+| 文档 | 说明 |
+|------|------|
+| [docs/快速启动指南.md](docs/快速启动指南.md) | **安装部署、一键启动、手动排错** |
+| [docs/应用指南.md](docs/应用指南.md) | 架构、功能、标定、参数、排坑 |
+| [docs/接口规范.md](docs/接口规范.md) | Topic、消息格式、TF 坐标系 |
+| [slam/README.md](slam/README.md) | SLAM 建图详细说明 |
+| [web/robot-monitor/README.md](web/robot-monitor/README.md) | Web 监控平台 |
 
 ---
 
-## Git 速查表
+## 团队
 
-| 操作 | 命令 |
-|------|------|
-| 看状态 | `git status` |
-| 看改了啥 | `git diff` |
-| 添加一个文件 | `git add <文件名>` |
-| 添加全部改动 | `git add .` |
-| 提交 | `git commit -m "描述"` |
-| 推送 | `git push` |
-| 拉最新 | `git pull` |
-| 切换分支 | `git checkout <分支名>` |
-| 看提交记录 | `git log --oneline -5` |
-| 暂存改动（要临时切分支时） | `git stash` |
-| 恢复暂存 | `git stash pop` |
-| 放弃单个文件改动 | `git checkout -- <文件名>` |
-| 看当前哪个分支 | `git branch` |
+| 成员 | 职责 | 模块 |
+|------|------|------|
+| 胡祖宸 | 组长 - 底盘+集成 | vehicle_bringup |
+| 庄晨 | 雷达+SLAM | lidar_slam |
+| 龚欣卉 | 避障+路线+后端 | navigation |
+| 刘瑜彤 | 硬件+传感器 | sensor_bringup |
+| 周光玮 | 前端可视化 | web/robot-monitor |
 
 ---
 
 ## 常见问题
 
-**Q: `ros2` 命令找不到？**
-A: `source /opt/ros/jazzy/setup.bash`，或检查 `~/.bashrc` 里有没有加这行。
+**Q: chassis_node 报 Connection refused？**
+A: 转发器没起。跑 `python docs/forward_5578.py`
 
-**Q: `colcon build` 报错找不到某个包？**
-A: 可能 `git pull dev` 漏了。执行 `git checkout dev && git pull && git checkout feature/<你的分支> && git merge dev`，再编译。
+**Q: 雷达 /dev/ttyUSB0 不存在？**
+A: `usbipd attach --wsl Ubuntu --busid 1-10` + `sudo modprobe ch341 && sudo chmod 666 /dev/ttyUSB0`
 
-**Q: `ros2 interface show` 显示 Unknown package？**
-A: 没 `source install/setup.bash`，或者是其他分支没建这个包。先 `colcon build` 再 `source`。
+**Q: 地面转弯无力？**
+A: MAX_ANGULAR_SPEED=16 是悬空标定值，需跑落地旋转标定：`python3 scripts/recalibrate_rot.py`
 
-**Q: push 失败说 conflict？**
-A: 别人改了你在改的同一个文件。先 `git pull origin dev`，合并冲突后 `git push`。
+**Q: ros2 命令找不到？**
+A: `source /opt/ros/jazzy/setup.bash`
 
-**Q: Git 要我输密码但总失败？**
-A: 用 SSH 方式 clone，不要用 HTTPS。重新设置 remote：`git remote set-url origin git@github.com:zhuangchen557/lidar_patrol_ws.git`
-
-## 相关文档
-
-- SLAM 建图：[`slam/README.md`](slam/README.md)
-- 接口规范：[`docs/接口规范.md`](docs/接口规范.md)
-- 项目方案：`docs/项目方案.md`
-- 前端监控平台：[`web/robot-monitor/README.md`](web/robot-monitor/README.md)
+**Q: colcon build 报错？**
+A: `git checkout dev && git pull && git checkout feature/<你的分支> && git merge dev` 再编译
