@@ -69,14 +69,15 @@ class LaserAvoidance(Node):
         )
 
     def sector_min(self, scan, center, half_width):
+        """扇区内最近有效距离(角度按 2π 环绕归一化, 兼容 0~2π 和 -π~π 两种 scan)"""
         values = []
         angle = scan.angle_min
 
         for r in scan.ranges:
-            if -math.pi <= angle <= math.pi:
+            if self.valid_range(r, scan):
                 diff = math.atan2(math.sin(angle - center),
                                   math.cos(angle - center))
-                if abs(diff) <= half_width and self.valid_range(r, scan):
+                if abs(diff) <= half_width:
                     values.append(r)
             angle += scan.angle_increment
 
@@ -94,14 +95,16 @@ class LaserAvoidance(Node):
             self.cmd_pub.publish(cmd)
             return
 
-        if front < self.stop_distance:
-            # Stop first, then turn toward the side with more free space.
+        nearest_side = min(left, right)
+
+        if front < self.stop_distance or nearest_side < self.stop_distance:
+            # 前方或任一侧太近: 停 + 向更空旷的一侧转
             cmd.linear.x = 0.0
             cmd.angular.z = self.turn_speed if left > right else -self.turn_speed
             state = 'TURN'
 
-        elif front < self.safe_distance:
-            # Slow down when an obstacle is inside the safety distance.
+        elif front < self.safe_distance or nearest_side < self.safe_distance:
+            # 接近任何方向障碍: 减速
             cmd.linear.x = self.slow_speed
             cmd.angular.z = 0.0
             state = 'SLOW'
