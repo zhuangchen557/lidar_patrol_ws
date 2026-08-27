@@ -73,3 +73,29 @@ uvicorn backend.main:app --reload
 本包不自行实现 DWA/DWB。实际避障由你们最终 Nav2 配置负责。waypoint 只负责给 Nav2 发送目标点。
 
 真实 waypoint 不直接把 `/odom` 的 x/y 当作最终路线坐标，而是通过 TF 获取 `map -> base_link`。
+
+
+## 新增：沿已录制路线返回原点
+
+如果已经完成一条真实路线录制，并且当前小车位于路线终点，可以让 Nav2 按照录制点的**逆序**返回第一个 waypoint（即录制原点）：
+
+```bash
+ros2 run navigation return_to_origin routes/real_route.json
+```
+
+默认会跳过当前最后一个 waypoint，避免机器人已经在终点时重复发送一次相同目标，然后依次执行倒数第二个点……最后到第一个点。
+
+如需严格把最后一个 waypoint 也重新发送：
+
+```bash
+ros2 run navigation return_to_origin routes/real_route.json \
+  --ros-args -p skip_current_point:=false
+```
+
+前提：
+- 路线 JSON 的 `frame_id` 必须是 `map`；
+- Nav2 `/navigate_to_pose` 必须已经启动；
+- `map -> odom -> base_link` TF 正常；
+- 机器人当前环境应与录制路线的地图基本一致。
+
+注意：这里的“回退”是**沿原路线的 waypoint 逆序导航**，不是让底盘倒车（reverse driving）。机器人仍由 Nav2 正常朝向每个 waypoint 行驶，因此可以利用规划器和避障能力。

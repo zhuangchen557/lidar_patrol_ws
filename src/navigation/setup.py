@@ -16,6 +16,7 @@ setup(
         "console_scripts": [
             "waypoint_recorder=navigation.waypoint_recorder:main",
             "waypoint_player=navigation.waypoint_player:main",
+            "return_to_origin=navigation.return_to_origin:main",
             "route_validator=navigation.route_validator:main",
             "rosbridge_client=navigation.rosbridge_client:main",
         ],
