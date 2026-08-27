@@ -26,7 +26,7 @@ fi
 
 echo "[3/4] 编译最新代码 ..."
 source /opt/ros/jazzy/setup.bash
-colcon build --symlink-install --packages-skip yk_can_cpp 2>&1 | tail -3
+colcon build --symlink-install --packages-skip yk_can_cpp robot_mock_backend 2>&1 | tail -3
 
 echo "[4/4] 启动 bringup（底盘 + 雷达 + TF）... Ctrl+C 停止"
 source install/setup.bash
