@@ -11,12 +11,16 @@ echo [1/3] Keep WSL running ...
 start /b "" wsl -d Ubuntu -u root -e bash -c "sleep 7200"
 timeout /t 3 >nul
 
-echo [2/3] Attach lidar USB (busid 1-9) to WSL ...
-usbipd bind --busid 1-9 2>nul
+echo [1.5/3] Clean old forwarder processes ...
+powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { $_.CommandLine -like '*forward_5578*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
+timeout /t 1 >nul
+
+echo [2/3] Attach lidar USB (busid 1-10) to WSL ...
+usbipd bind --busid 1-10 2>nul
 if %errorlevel% neq 0 (
     echo   WARNING: bind failed - lidar not plugged in?
 )
-usbipd attach --wsl Ubuntu --busid 1-9
+usbipd attach --wsl Ubuntu --busid 1-10
 if %errorlevel% neq 0 (
     echo   WARNING: attach failed - lidar not plugged or already attached
 )
