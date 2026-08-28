@@ -1,0 +1,193 @@
+const { app, BrowserWindow, dialog } = require('electron')
+const { spawn } = require('node:child_process')
+const fs = require('node:fs')
+const path = require('node:path')
+
+const DEFAULT_CONFIG = {
+  gatewayPort: 8000,
+  rosbridgeUrl: 'ws://127.0.0.1:9090',
+  wsl: { enabled: true, distro: 'auto' },
+  usbSensor: { port: 'auto', autoDetect: true, baudrate: 9600, slaveId: 1 },
+  chassis: { enabled: true, host: '192.168.0.7', port: 5578 },
+  lidar: { port: 'auto', autoDetect: true, baudrate: 230400 },
+}
+
+let gatewayProcess
+let rosbridgeHostProcess
+
+function portableDirectory() {
+  return process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(process.execPath)
+}
+
+function readConfig() {
+  const candidates = app.isPackaged
+    ? [path.join(portableDirectory(), 'experiment-config.json')]
+    : [path.join(app.getAppPath(), 'experiment-config.json')]
+  for (const candidate of candidates) {
+    if (!fs.existsSync(candidate)) continue
+    try {
+      return { ...DEFAULT_CONFIG, ...JSON.parse(fs.readFileSync(candidate, 'utf8')) }
+    } catch (error) {
+      dialog.showErrorBox('配置文件错误', `${candidate}\n${error.message}`)
+    }
+  }
+  return DEFAULT_CONFIG
+}
+
+function gatewayEnvironment(config) {
+  const dataDirectory = path.join(portableDirectory(), 'data')
+  fs.mkdirSync(dataDirectory, { recursive: true })
+  return {
+    ...process.env,
+    GATEWAY_HOST: '127.0.0.1',
+    GATEWAY_PORT: String(config.gatewayPort || 8000),
+    FRONTEND_ORIGINS: 'http://localhost:5173,http://127.0.0.1:5173,file://,null',
+    ROSBRIDGE_URL: config.rosbridgeUrl || DEFAULT_CONFIG.rosbridgeUrl,
+    USB_SENSOR_PORT: config.usbSensor?.port || '',
+    USB_SENSOR_AUTO_DETECT: config.usbSensor?.autoDetect === false ? 'false' : 'true',
+    USB_SENSOR_BAUDRATE: String(config.usbSensor?.baudrate || 9600),
+    USB_SENSOR_SLAVE_ID: String(config.usbSensor?.slaveId || 1),
+    CHASSIS_PROBE_ENABLED: config.chassis?.enabled === false ? 'false' : 'true',
+    CHASSIS_HOST: config.chassis?.host || DEFAULT_CONFIG.chassis.host,
+    CHASSIS_PORT: String(config.chassis?.port || DEFAULT_CONFIG.chassis.port),
+    LIDAR_PORT: config.lidar?.port || '',
+    LIDAR_AUTO_DETECT: config.lidar?.autoDetect === false ? 'false' : 'true',
+    LIDAR_BAUDRATE: String(config.lidar?.baudrate || 230400),
+    HISTORY_DB: path.join(dataDirectory, 'robot_history.db'),
+  }
+}
+
+function startRosbridgeHost(config) {
+  if (process.platform !== 'win32' || config.wsl?.enabled === false) return
+  const distro = String(config.wsl?.distro || 'auto').trim()
+  const args = []
+  if (distro && !['auto', 'default'].includes(distro.toLowerCase())) {
+    args.push('-d', distro)
+  }
+  args.push(
+    '-u',
+    'root',
+    '--',
+    'bash',
+    '-lc',
+    'if systemctl start rosbridge.service 2>/dev/null; then sleep 2; if systemctl is-active --quiet rosbridge.service; then exec sleep infinity; fi; fi; if ! command -v ros2 >/dev/null 2>&1; then setup=/opt/ros/humble/setup.bash; if [ ! -f "$setup" ]; then setup=$(find /opt/ros -maxdepth 2 -name setup.bash 2>/dev/null | head -n 1); fi; [ -n "$setup" ] || exit 1; . "$setup"; fi; exec ros2 launch rosbridge_server rosbridge_websocket_launch.xml port:=9090 address:=127.0.0.1',
+  )
+  rosbridgeHostProcess = spawn(
+    'wsl.exe',
+    args,
+    { windowsHide: true, stdio: 'ignore' },
+  )
+  // ROS2 is optional during pure USB/CAN experiments. If WSL is unavailable,
+  // the FastAPI gateway keeps running and reports rosbridge as disconnected.
+  rosbridgeHostProcess.on('error', () => {})
+}
+
+function startGateway(config) {
+  const env = gatewayEnvironment(config)
+  if (app.isPackaged) {
+    // rosbridge 版源码网关优先：resources/app/gateway/USE_SOURCE.flag 存在时启用
+    const sourceRoot = path.join(process.resourcesPath, 'app', 'gateway')
+    const sourceMarker = path.join(sourceRoot, 'USE_SOURCE.flag')
+    if (fs.existsSync(sourceMarker)) {
+      const python = process.env.GATEWAY_PYTHON || 'C:\\Python314\\python.exe'
+      gatewayProcess = spawn(
+        python,
+        ['-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', String(config.gatewayPort || 8000)],
+        { cwd: sourceRoot, env, windowsHide: true, stdio: 'ignore' },
+      )
+      return
+    }
+    const executable = path.join(process.resourcesPath, 'gateway', 'robot_gateway.exe')
+    if (!fs.existsSync(executable)) throw new Error(`缺少实验网关：${executable}`)
+    gatewayProcess = spawn(executable, [], { env, windowsHide: true, stdio: 'ignore' })
+    return
+  }
+
+  const projectRoot = app.getAppPath()
+  const python = process.env.GATEWAY_PYTHON
+    || path.join(projectRoot, 'gateway', '.venv', 'Scripts', 'python.exe')
+  if (!fs.existsSync(python)) {
+    throw new Error('未找到 gateway/.venv/Scripts/python.exe，请先准备本地网关环境。')
+  }
+  gatewayProcess = spawn(
+    python,
+    ['-m', 'uvicorn', 'gateway.app.main:app', '--host', '127.0.0.1', '--port', String(config.gatewayPort || 8000)],
+    { cwd: projectRoot, env, windowsHide: true, stdio: 'inherit' },
+  )
+}
+
+async function waitForGateway(port) {
+  const deadline = Date.now() + 15000
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/api/health`)
+      if (response.ok) return
+    } catch {}
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+  throw new Error('实验网关在15秒内没有启动。请检查串口是否被其他程序占用。')
+}
+
+async function createWindow(config) {
+  const window = new BrowserWindow({
+    width: 1480,
+    height: 920,
+    minWidth: 1080,
+    minHeight: 720,
+    backgroundColor: '#0d120f',
+    title: 'Enzo 巡迹实验台',
+    autoHideMenuBar: true,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  })
+
+  if (app.isPackaged) {
+    await window.loadFile(path.join(app.getAppPath(), 'dist', 'index.html'))
+  } else {
+    await window.loadURL(process.env.ELECTRON_DEV_URL || 'http://127.0.0.1:5173')
+  }
+}
+
+function stopGateway() {
+  if (!gatewayProcess || gatewayProcess.killed) return
+  gatewayProcess.kill()
+  gatewayProcess = undefined
+}
+
+function stopRosbridgeHost() {
+  if (!rosbridgeHostProcess || rosbridgeHostProcess.killed) return
+  rosbridgeHostProcess.kill()
+  rosbridgeHostProcess = undefined
+}
+
+if (!app.requestSingleInstanceLock()) {
+  app.quit()
+} else {
+  app.whenReady().then(async () => {
+    try {
+      const config = readConfig()
+      startRosbridgeHost(config)
+      startGateway(config)
+      await waitForGateway(config.gatewayPort || 8000)
+      await createWindow(config)
+    } catch (error) {
+      dialog.showErrorBox('Enzo 巡迹实验台启动失败', error.message)
+      stopGateway()
+      app.quit()
+    }
+  })
+}
+
+app.on('window-all-closed', () => {
+  stopGateway()
+  stopRosbridgeHost()
+  app.quit()
+})
+
+app.on('before-quit', () => {
+  stopGateway()
+  stopRosbridgeHost()
+})

@@ -1,0 +1,24 @@
+{
+  "gatewayPort": 8000,
+  "rosbridgeUrl": "ws://127.0.0.1:9090",
+  "wsl": {
+    "enabled": true,
+    "distro": "auto"
+  },
+  "usbSensor": {
+    "port": "COM3",
+    "autoDetect": false,
+    "baudrate": 9600,
+    "slaveId": 1
+  },
+  "chassis": {
+    "enabled": true,
+    "host": "192.168.0.7",
+    "port": 5578
+  },
+  "lidar": {
+    "port": "auto",
+    "autoDetect": true,
+    "baudrate": 230400
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "name": "robot-monitor",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:github": "vite build --base=/smart-robot-monitor/",
+    "build:site": "node scripts/build-site.mjs",
+    "preview": "vite preview",
+    "desktop:dev": "electron .",
+    "desktop:build": "electron-builder --win portable"
+  },
+  "dependencies": {
+    "axios": "^1.11.0",
+    "echarts": "^6.0.0",
+    "vue": "^3.5.18"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.1",
+    "electron": "^43.4.1",
+    "electron-builder": "^26.15.3",
+    "vite": "^7.1.0"
+  },
+  "build": {
+    "appId": "cn.enzo.patrol.lab",
+    "productName": "Enzo 巡迹实验台",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "desktop/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "release-resources/gateway",
+        "to": "gateway"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "EnzoPatrolLab-${version}-portable.${ext}"
+    }
+  }
+}
