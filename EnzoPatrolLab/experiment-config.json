@@ -6,7 +6,7 @@
     "distro": "auto"
   },
   "usbSensor": {
-    "port": "COM3",
+    "port": "COM5",
     "autoDetect": false,
     "baudrate": 9600,
     "slaveId": 1
