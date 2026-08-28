@@ -1,6 +1,6 @@
 # nav2_params.yaml — 07-4L 巡检车 Nav2 导航参数
 # 适配: 差速底盘, 激光 /scan (frame=laser), odom 来自 chassis_bridge
-# 车辆: 轮径0.37m 轮距0.60m 碰撞半径0.45m | 限速 v=0.5m/s ω=1.0rad/s
+# 车辆: 轮径0.37m 轮距0.60m 碰撞半径0.30m(2026-08-28实车调整, 便于窄道通行) | 限速 v=0.5m/s ω=1.0rad/s
 # 参考: Humble nav2_bringup 默认参数, 按本车修改
 
 
@@ -14,7 +14,7 @@ global_costmap:
       use_sim_time: False
       robot_base_frame: base_link
       global_frame: map
-      footprint: "[[0.55, 0.40], [0.55, -0.40], [-0.55, -0.40], [-0.55, 0.40]]"
+      footprint: "[[0.30, 0.30], [0.30, -0.30], [-0.30, -0.30], [-0.30, 0.30]]"
       resolution: 0.05
       track_unknown_space: true
       plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
@@ -38,7 +38,7 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 0.8
+        inflation_radius: 0.5
       always_send_full_costmap: True
 
 local_costmap:
@@ -47,7 +47,7 @@ local_costmap:
       use_sim_time: False
       robot_base_frame: base_link
       global_frame: odom
-      footprint: "[[0.55, 0.40], [0.55, -0.40], [-0.55, -0.40], [-0.55, 0.40]]"
+      footprint: "[[0.30, 0.30], [0.30, -0.30], [-0.30, -0.30], [-0.30, 0.30]]"
       resolution: 0.05
       track_unknown_space: true
       plugins: ["voxel_layer", "inflation_layer"]
@@ -78,7 +78,7 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 0.6
+        inflation_radius: 0.5
       always_send_full_costmap: True
 
 # ============================================================
@@ -158,7 +158,7 @@ behavior_server:
     compute_footsteps: true
     local_planner: FollowPath
     global_planner: GridBased
-    footprint: "[[0.55, 0.40], [0.55, -0.40], [-0.55, -0.40], [-0.55, 0.40]]"
+    footprint: "[[0.30, 0.30], [0.30, -0.30], [-0.30, -0.30], [-0.30, 0.30]]"
     transform_tolerance: 0.1
     min_rot_vel: 0.5
     max_rot_vel: 1.0
@@ -189,55 +189,6 @@ bt_navigator:
     global_frame: map
     robot_base_frame: base_link
     odom_topic: /odom
-    plugin_lib_names:
-      - nav2_compute_path_to_pose_action_bt_node
-      - nav2_compute_path_through_poses_action_bt_node
-      - nav2_smooth_path_action_bt_node
-      - nav2_follow_path_action_bt_node
-      - nav2_spin_action_bt_node
-      - nav2_wait_action_bt_node
-      - nav2_assisted_teleop_action_bt_node
-      - nav2_back_up_action_bt_node
-      - nav2_drive_on_heading_bt_node
-      - nav2_clear_costmap_service_bt_node
-      - nav2_is_stuck_condition_bt_node
-      - nav2_goal_reached_condition_bt_node
-      - nav2_goal_updated_condition_bt_node
-      - nav2_globally_updated_goal_condition_bt_node
-      - nav2_is_path_valid_condition_bt_node
-      - nav2_initial_pose_received_condition_bt_node
-      - nav2_reinitialize_global_localization_service_bt_node
-      - nav2_rate_controller_bt_node
-      - nav2_distance_controller_bt_node
-      - nav2_speed_controller_bt_node
-      - nav2_truncate_path_action_bt_node
-      - nav2_truncate_path_local_action_bt_node
-      - nav2_goal_updater_node_bt_node
-      - nav2_recovery_node_bt_node
-      - nav2_pipeline_sequence_bt_node
-      - nav2_round_robin_node_bt_node
-      - nav2_transform_available_condition_bt_node
-      - nav2_time_expired_condition_bt_node
-      - nav2_path_expiring_timer_condition
-      - nav2_distance_traveled_condition_bt_node
-      - nav2_single_trigger_bt_node
-      - nav2_goal_updated_controller_bt_node
-      - nav2_is_battery_low_condition_bt_node
-      - nav2_navigate_through_poses_action_bt_node
-      - nav2_navigate_to_pose_action_bt_node
-      - nav2_remove_passed_goals_action_bt_node
-      - nav2_planner_selector_bt_node
-      - nav2_controller_selector_bt_node
-      - nav2_goal_checker_selector_bt_node
-      - nav2_controller_cancel_bt_node
-      - nav2_path_longer_on_approach_bt_node
-      - nav2_wait_cancel_bt_node
-      - nav2_spin_cancel_bt_node
-      - nav2_back_up_cancel_bt_node
-      - nav2_assisted_teleop_cancel_bt_node
-      - nav2_drive_on_heading_cancel_bt_node
-      - nav2_is_battery_charging_condition_bt_node
-
 # ============================================================
 # 路径点跟随 (巡检用)
 # ============================================================
@@ -278,40 +229,66 @@ velocity_smoother:
 # ============================================================
 amcl:
   ros__parameters:
-    use_sim_time: False
-    alpha1: 0.2
-    alpha2: 0.2
-    alpha3: 0.2
-    alpha4: 0.2
-    alpha5: 0.2
     base_frame_id: base_link
-    global_frame_id: map
-    beam_skip_distance: 0.5
-    beam_skip_error_threshold: 0.9
-    beam_skip_threshold: 0.3
-    do_beamskip: false
-    lambda_short: 0.1
-    laser_likelihood_max_dist: 2.0
-    laser_max_range: 100.0
-    laser_min_range: -1.0
-    laser_model_type: likelihood_field
-    max_beams: 60
-    max_particles: 2000
-    min_particles: 500
-    pf_err: 0.05
-    pf_z: 0.99
-    recovery_alpha_fast: 0.0
-    recovery_alpha_slow: 0.0
-    resample_interval: 1
-    robot_model_type: nav2_amcl::DifferentialMotionModel
-    save_pose_rate: 0.5
-    sigma_hit: 0.2
-    tf_broadcast: true
-    transform_tolerance: 1.0
-    update_min_a: 0.2
-    update_min_d: 0.25
-    z_hit: 0.5
-    z_max: 0.05
-    z_rand: 0.5
-    z_short: 0.05
-    scan_topic: scan
+# ============================================================
+# 碰撞监控（缺段会导致 configure 失败，Aborting bringup）
+# ============================================================
+collision_monitor:
+  ros__parameters:
+    use_sim_time: false
+    base_frame_id: base_link
+    odom_topic: /odom
+    cmd_vel_topic: /cmd_vel
+    enable_stamped_cmd_vel: true
+    enable_collision_prevention: true
+    collision_prevention_distance: 0.2
+    polygons:
+    - RobotFootprint
+    observation_sources:
+    - scan
+    RobotFootprint:
+      type: polygon
+      action_type: stop
+      polygon_sub_topic: 
+      footprint: '[[-0.30, -0.30], [-0.30, 0.30], [0.30, 0.30], [0.30, -0.30]]'
+      min_points: 4
+      pose_frame: base_link
+    scan:
+      type: scan
+      topic: scan
+      min_points: 4
+      max_points: 500
+      min_height: 0.1
+      max_height: 2.0
+      enabled: true
+      pose_frame: base_link
+
+# ============================================================
+# opennav_docking（无充电桩，空配置让 configure 通过）
+# ============================================================
+opennav_docking:
+  ros__parameters:
+    dock_namespaces: []
+    dock_plugins: []
+    docks: {}
+
+# ============================================================
+# opennav_docking（SimpleChargingDock 标准模板，本车无桩仅为配置通过）
+# ============================================================
+opennav_docking:
+  ros__parameters:
+    dock_namespaces: ['dock_1']
+    dock_plugins: ['dock_1::opennav_docking::SimpleChargingDock']
+    docks:
+      dock_1:
+        type: 'undock_backwards'
+        frame_id: 'dock_1'
+        dock_plugin: 'dock_1::opennav_docking::SimpleChargingDock'
+        yaw: 0.0
+        x: -0.6
+        y: 0.0
+        use_external_detection_pose: false
+        external_detection_pose:
+          x: 0.0
+          y: 0.0
+          yaw: 0.0

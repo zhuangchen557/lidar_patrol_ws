@@ -29,7 +29,7 @@ class ScanRepub(Node):
 
     def cb(self, msg):
         self.count += 1
-        if self.count % 50 == 0:
+        if self.count % 1000 == 0:
             self.get_logger().info(f"转发了 {self.count} 帧")
         self.pub.publish(msg)
 

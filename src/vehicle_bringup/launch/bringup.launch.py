@@ -105,7 +105,7 @@ def generate_launch_description():
                     ),
                     IncludeLaunchDescription(
                         PythonLaunchDescriptionSource(os.path.join(
-                            nav2_bringup_dir, "launch", "navigation_launch.py")),
+                            get_package_share_directory("vehicle_bringup"), "launch", "navigation_no_dock.launch.py")),
                         launch_arguments={
                             "params_file": nav2_params_file,
                             "use_sim_time": "false",

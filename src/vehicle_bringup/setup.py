@@ -23,6 +23,7 @@ setup(
             "scan_repacker = vehicle_bringup.scan_repacker:main",
             "sensor_bridge_node = vehicle_bringup.sensor_bridge_node:main",
     "scan_repub = vehicle_bringup.scan_repub:main",
+    "particle_bridge = vehicle_bringup.particle_bridge:main",
         ],
     },
 )
