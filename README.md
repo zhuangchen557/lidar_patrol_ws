@@ -30,6 +30,7 @@ lidar_patrol_ws/
 │   ├── vehicle_bringup/       # F1 底盘 + F2 雷达集成 + Nav2/SLAM 启动
 │   ├── lidar_avoidance/       # F4 激光避障（FORWARD/SLOW/TURN 状态机）
 │   ├── navigation/            # F5 路线录制/回放（含避障）/ 后端
+│   │   └── routes/            # 路线文件（patrol_route.json 34点示例 / bench_route.json）
 │   ├── ldlidar/               # LD19 雷达驱动（ROS2 Jazzy）
 │   └── custom_interfaces/     # 自定义消息
 ├── YK_CANSDK/                 # 底盘 CAN SDK（Python）
@@ -37,7 +38,7 @@ lidar_patrol_ws/
 │   └── gateway-ros2/          # 实验台网关源码（rosbridge 版，替代编译版 exe）
 ├── slam/                      # F3 建图配置与地图（my_map.pgm）
 ├── EnzoPatrolLab/             # F7/F8 Windows 实验台完整包（0.2.0，Git LFS）
-├── scripts/                   # 转发器 / 一键启动 / 标定脚本
+├── scripts/                   # 转发器 / 一键启动 / 标定 / 扫描分析脚本
 ├── config/                    # RViz 配置（nav2.rviz）
 └── docs/                      # 快速启动指南 / 应用指南 / 接口规范
 ```
@@ -148,6 +149,12 @@ rviz2 -d config/nav2.rviz        # 地图/点云/粒子/位姿自动显示
 ```bash
 ros2 run lidar_avoidance laser_avoidance
 # 前方<0.5m 或侧向<0.3m 触发 TURN 避让；参数在 src/lidar_avoidance/config/avoidance.yaml
+```
+
+### 障碍物扫描分析（调试用）
+```bash
+python3 scripts/scan_analyze.py
+# 输出：前方±45°/±90°、左右 30° 扇区、后方的最近障碍物距离与角度
 ```
 
 ### 路线巡检（录制/回放）
