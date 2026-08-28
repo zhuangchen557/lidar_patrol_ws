@@ -33,17 +33,25 @@ def _close(socks):
 
 
 def pipe(src, dst, name):
+    total = 0
     try:
         while True:
             data = src.recv(4096)
             if not data:
                 break
             dst.sendall(data)
+            total += len(data)
+            if total % 200 == 0:
+                print(f'[{name}] relayed {total} bytes', flush=True)
     except Exception:
         pass
     finally:
+        # 仅当自己仍是对应方向的当前连接时才清理，避免误杀新连接
+        with _lock:
+            if _active['client'] is src and _active['target'] is dst:
+                _active['client'] = None
+                _active['target'] = None
         _close((src, dst))
-        _close(_swap((None, None)))
 
 
 def handle(client):
