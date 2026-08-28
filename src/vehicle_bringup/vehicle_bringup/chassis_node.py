@@ -23,24 +23,14 @@ class ChassisNode(Node):
     def __init__(self):
         super().__init__("chassis_node")
 
-        # --- 尝试导入 YK_CAN SDK ---
+        # --- 尝试导入 YK_CAN SDK（失败进模拟模式，由 _check_connection 周期重试恢复） ---
         self.car = None
         try:
-            import sys
-            sys.path.insert(0, "/home/sagac1ty/can_sdk")
-            from yk_can_sdk import FourWheelVehicle, VehicleConfig
-            from yk_can_sdk.config import NetworkConfig
-
-            can_host = self.declare_parameter("can_host", "127.0.0.1").value
-            can_port = self.declare_parameter("can_port", 5578).value
-            config = VehicleConfig(network=NetworkConfig(host=can_host, port=can_port))
-            self.car = FourWheelVehicle(config)
-            self.car.connect()
-            self.get_logger().info(f"YK_CAN SDK 已加载，已连接 CAN115 ({can_host}:{can_port})")
-            # --- 自动重连：CAN115 连接断开后每 2s 尝试恢复 ---
-            self.create_timer(2.0, self._check_connection)
+            self._init_sdk()
         except Exception as e:
-            self.get_logger().warn(f"YK_CAN SDK 不可用: {e}，将以模拟模式运行")
+            self.get_logger().warn(f'YK_CAN SDK 不可用: {e}，将以模拟模式运行，后台自动重试')
+        # --- 自动重连：连接断开或模拟模式下每 2s 尝试恢复 ---
+        self.create_timer(2.0, self._check_connection)
 
         # --- 订阅 /cmd_vel ---
         self.cmd_sub = self.create_subscription(
@@ -66,21 +56,40 @@ class ChassisNode(Node):
 
         # --- 看门狗：如果 0.5s 没收到 /cmd_vel，自动停车 ---
         self.watchdog_timer = self.create_timer(0.1, self.watchdog_check)
+        # --- 心跳保活：CAN115 空闲会踢 TCP 连接，周期性发零速帧保持连接 ---
+        self.keepalive_timer = self.create_timer(0.25, self.keepalive_check)
         self.last_cmd_time = self.get_clock().now()
 
         self.get_logger().info("底盘节点启动完成")
 
+    def _init_sdk(self):
+        """初始化 YK_CAN SDK；失败时 car 保持 None，由 _check_connection 周期重试"""
+        import sys
+        sys.path.insert(0, "/home/sagac1ty/can_sdk")
+        from yk_can_sdk import FourWheelVehicle, VehicleConfig
+        from yk_can_sdk.config import NetworkConfig
+
+        can_host = self.declare_parameter("can_host", "127.0.0.1").value
+        can_port = self.declare_parameter("can_port", 5578).value
+        config = VehicleConfig(network=NetworkConfig(host=can_host, port=can_port))
+        self.car = FourWheelVehicle(config)
+        self.car.connect()
+        self.get_logger().info(f"YK_CAN SDK 已加载，已连接 CAN115 ({can_host}:{can_port})")
+
     def _check_connection(self):
-        """连接断开后自动重连（SDK 自身不重连，断了会永久报错）"""
-        if self.car is None or self.car.is_connected:
+        """连接断开或未初始化时自动重连（CAN115 间歇不可达也能自愈）"""
+        if self.car is not None and self.car.is_connected:
             return
-        self.get_logger().warn("底盘连接断开，尝试重连...")
         try:
+            if self.car is None:
+                self._init_sdk()
+                return
+            self.get_logger().warn("底盘连接断开，尝试重连...")
             self.car.close()
             self.car.connect()
             self.get_logger().info("底盘已自动重连")
         except Exception as e:
-            self.get_logger().warn(f"底盘重连失败: {e}")
+            self.get_logger().warn(f"底盘连接失败: {e}")
 
     def cmd_callback(self, msg: Twist):
         """接收 /cmd_vel 指令 → 归一化到 [-1,1] → 调用 set_motion"""
@@ -96,6 +105,14 @@ class ChassisNode(Node):
                 self.car.set_motion(linear=lin_norm, angular=ang_norm)
             except Exception as e:
                 self.get_logger().error(f"set_motion 失败: {e}")
+
+    def keepalive_check(self):
+        """心跳：CAN115 空闲超时会断开 TCP，周期发零速帧保活（不改变运动状态）"""
+        if self.car is not None and self.car.is_connected:
+            try:
+                self.car.set_motion(linear=0.0, angular=0.0)
+            except Exception:
+                pass
 
     def watchdog_check(self):
         """看门狗：如果超时未收到 /cmd_vel，停车"""
