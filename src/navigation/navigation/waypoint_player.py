@@ -19,6 +19,8 @@ from rclpy.action import ActionClient
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
+from sensor_msgs.msg import LaserScan
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSDurabilityPolicy
 
 LINEAR_SPEED = 0.4       # m/s (direct mode)
 YAW_TOL = 0.06           # rad
@@ -62,9 +64,66 @@ class WaypointPlayer(Node):
                 Odometry, "/odom", self.odom_cb, 10
             )
             self.cmd_pub = self.create_publisher(Twist, "/cmd_vel", 10)
+            # --- 回放避障（前方障碍停车等待，清除后继续） ---
+            self.declare_parameter("avoid_enabled", True)
+            self.declare_parameter("avoid_stop_distance", 0.50)
+            self.declare_parameter("avoid_front_angle_deg", 25.0)
+            self.declare_parameter("avoid_side_angle_deg", 90.0)
+            self.avoid_enabled = bool(self.get_parameter("avoid_enabled").value)
+            self.avoid_stop = float(self.get_parameter("avoid_stop_distance").value)
+            self.avoid_front = math.radians(
+                float(self.get_parameter("avoid_front_angle_deg").value))
+            self.avoid_side = math.radians(
+                float(self.get_parameter("avoid_side_angle_deg").value))
+            self.latest_scan = None
+            scan_qos = QoSProfile(
+                depth=5,
+                reliability=QoSReliabilityPolicy.BEST_EFFORT,
+                durability=QoSDurabilityPolicy.VOLATILE,
+            )
+            self.scan_sub = self.create_subscription(
+                LaserScan, "/scan", self.scan_cb, scan_qos)
             self.get_logger().info(
                 "直接回放模式（use_nav2=false）：odom 闭环 + /cmd_vel"
             )
+            self.get_logger().info(
+                f"回放避障已启用: 前方 <{self.avoid_stop:.2f}m 停车等待"
+            )
+
+    def scan_cb(self, msg: LaserScan):
+        self.latest_scan = msg
+
+    def scan_sector_min(self, scan, center_rad, half_rad):
+        """计算 [center-half, center+half] 扇区最近距离"""
+        n = len(scan.ranges)
+        angle_min = scan.angle_min
+        inc = scan.angle_increment
+        best = float("inf")
+        for i in range(n):
+            r = scan.ranges[i]
+            if math.isnan(r) or r <= 0.05:
+                continue
+            a = angle_min + i * inc
+            diff = abs(a - center_rad)
+            if diff > math.pi:
+                diff = 2.0 * math.pi - diff
+            if diff <= half_rad and r < best:
+                best = r
+        return best
+
+    def check_avoidance(self):
+        """前方障碍过近 -> 返回 True（暂停回放）"""
+        if not self.avoid_enabled or self.latest_scan is None:
+            return False
+        front = self.scan_sector_min(self.latest_scan, 0.0, self.avoid_front)
+        left = self.scan_sector_min(self.latest_scan, math.pi / 2.0, self.avoid_side)
+        right = self.scan_sector_min(self.latest_scan, -math.pi / 2.0, self.avoid_side)
+        near = min(front, left, right)
+        if near < self.avoid_stop:
+            self.get_logger().warn(
+                f"避障: 最近 {near:.2f}m (front={front:.2f} left={left:.2f} right={right:.2f}) < {self.avoid_stop:.2f}m，暂停回放，障碍清除后继续")
+            return True
+        return False
 
     def odom_cb(self, msg: Odometry):
         self.latest_odom = msg
@@ -130,6 +189,10 @@ class WaypointPlayer(Node):
     def drive_to_xy(self, tx, ty, timeout_s=20.0):
         t0 = time.time()
         while time.time() - t0 < timeout_s:
+            if self.check_avoidance():
+                self.publish_cmd(0.0, 0.0)
+                self.spin_wait(0.1)
+                continue
             pose = self.get_pose()
             if pose is None:
                 self.spin_wait()
