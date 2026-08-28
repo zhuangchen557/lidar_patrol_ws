@@ -254,11 +254,3 @@ python3 scripts/recalibrate_rot.py           # 满速转 4 秒数圈
 | 龚欣卉 | 避障 + 路线巡检 + 后端 |
 | 刘瑜彤 | 硬件 + 传感器 |
 | 周光玮 | 可视化前端（robot-monitor） |
-
----
-
-## 八、Git 协作规范
-
-- 主分支：`main`（发布） / `dev`（集成） / `feature/*`（个人开发）
-- 开发流程：`git checkout dev && git pull && git checkout -b feature/xxx` → 开发 → PR 到 dev
-- 大文件（exe/dll）走 Git LFS：`git lfs pull` 拉取
